@@ -17,6 +17,7 @@ import { forwardRef } from 'react';
 import useSWR from 'swr';
 import deepEqual from 'fast-deep-equal';
 import { CarPagination } from '../components/CarPagination';
+import CarCard from '../components/CarCard';
 
 export interface CarListProps {
   makes: Make[];
@@ -47,12 +48,18 @@ export default function CarsList({
       <Grid item xs={12} sm={5} md={3} lg={2}>
         <Search singleColumn makes={makes} models={models} />
       </Grid>
-      <Grid item xs={12} sm={7} md={9} lg={10}>
-        <CarPagination totalPages={totalPages} />
-        <pre style={{ fontSize: '2.5rem' }}>
-          {JSON.stringify(data, null, 4)}
-        </pre>
-        <CarPagination totalPages={totalPages} />
+      <Grid container item xs={12} sm={7} md={9} lg={10} spacing={3}>
+        <Grid item xs={12}>
+          <CarPagination totalPages={data && data.totalPages} />
+        </Grid>
+        {((data && data.cars) || []).map((car) => (
+          <Grid key={car.id} item xs={12} sm={6}>
+            <CarCard car={car} />
+          </Grid>
+        ))}
+        <Grid item xs={12}>
+          <CarPagination totalPages={data && data.totalPages} />
+        </Grid>
       </Grid>
     </Grid>
   );
