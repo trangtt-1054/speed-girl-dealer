@@ -11,8 +11,11 @@ import PaginationItem from "@material-ui/lab/PaginationItem";
 import { PaginationRenderItemParams } from "@material-ui/lab";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { ParsedUrlQuery } from "querystring";
+import { ParsedUrlQuery, stringify } from "querystring";
+import { useState } from "react";
 import { forwardRef } from "react";
+import useSWR from "swr";
+import deepEqual from "fast-deep-equal";
 
 export interface CarListProps {
   makes: Make[];
@@ -28,6 +31,16 @@ export default function CarsList({
   totalPages
 }: CarListProps) {
   const { query } = useRouter();
+  const [serverQuery] = useState(query);
+
+  const { data } = useSWR("/api/cars?" + stringify(query), {
+    dedupingInterval: 15000,
+    initialData: deepEqual(query, serverQuery)
+      ? { cars, totalPages }
+      : undefined
+    /* if query and serverQuery are the same, pass {cars, totalPages}, if they are different, that means we're alreay on second, third... navigation => ko pass initialData nữa. On first load, current query in browser and query executed in server are the same, but when we go to next page, pass initalData as undefined, so when swr sees no initialData, it will do the call */
+  });
+  console.log("data", data);
   return (
     <Grid container spacing={3}>
       <Grid item xs={12} sm={5} md={3} lg={2}>
@@ -48,7 +61,7 @@ export default function CarsList({
               />
             )}
           />
-          {JSON.stringify({ totalPages, cars }, null, 4)}
+          {JSON.stringify(data, null, 4)}
         </pre>
       </Grid>
     </Grid>
@@ -71,7 +84,7 @@ const MULink = forwardRef<HTMLAnchorElement, MULinkProps>(
   )
 );
 
-export const getServerSideProps: GetServerSideProps = async ctx => {
+export const getServerSideProps: GetServerSideProps<CarListProps> = async ctx => {
   const make = getAsString(ctx.query.make);
   //dùng Promise thay vì get từng cái khi muốn get 2 cái cùng lúc chứ ko phải chờ cái nọ xong mới get cái kia
   const [makes, models, pagination] = await Promise.all([
